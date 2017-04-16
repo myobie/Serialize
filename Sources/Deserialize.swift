@@ -19,32 +19,11 @@ enum DeserializationError: Error {
 
 typealias Buffer = [Character]
 
-enum Action {
-    case beginArray
-    case beginAtom
-    case beginObject
-    case beginNegativeNumber
-    case beginNumber
-    case beginNumberDecimal
-    case beginNumberScientific
-    case beginSpecialCharacter
-    case beginString
-    case beginUTF32HexCharacter
-    case comma
-    case endArray
-    case endAtom
-    case endFalse
-    case endObject
-    case endNull
-    case endNumber
-    case endSpecialCharacter
-    case endString
-    case endTrue
-    case endUTF32HexCharacter
-    case malformedControlCharacter
+enum StringAction {
     case read
-    case unknownAtom
-    case whitespace
+    case beginSpecialCharacter
+    case beginUTF32HexCharacter
+    case endString
 }
 
 enum FirstCharacterAction {
@@ -261,13 +240,20 @@ func parseFirstCharacter(_ character: Character) -> FirstCharacterAction {
     return .unknownAtom
 }
 
+enum NestedAction {
+    case none
+    case complete
+}
+
 func deserializeNested(into node: Node, characters: String.CharacterView.SubSequence) throws -> (Value, String.CharacterView.SubSequence) {
-    var complete = false
+    var action: NestedAction = .none
     
     // dun dun dun
     
-    if complete {
-    } else {
+    switch(action) {
+    case .complete:
+        throw DeserializationError.notImplemented
+    default:
         throw DeserializationError.missingArrayTerminator
     }
 }
@@ -304,59 +290,60 @@ func deserializeAtom(initial: Character, characters: String.CharacterView.SubSeq
 
 func deserializeString(characters: String.CharacterView.SubSequence) throws -> (String, String.CharacterView.SubSequence) {
     var buffer: Buffer = []
-    var complete = false
     var location = -1
-    
-    var isCurrentlyInsideControlCharacter = false
-    var isCurrentlyInsideUnicodeHexCode = false
+    var action: StringAction = .read
     var unicodeHexBuffer: Buffer = []
     
     for character in characters {
         location += 1
         
-        if isCurrentlyInsideUnicodeHexCode {
+        switch(action) {
+        case .beginUTF32HexCharacter:
             if unicodeHexBuffer.count == 8 {
                 if let number = Int(String(unicodeHexBuffer), radix: 16),
                     let scalar = UnicodeScalar(number) {
                     let char = Character(scalar)
                     buffer.append(char)
                     unicodeHexBuffer.removeAll()
-                    isCurrentlyInsideUnicodeHexCode = false
+                    action = .read
                 } else {
                     throw DeserializationError.malformedControlCharacter
                 }
             } else {
                 unicodeHexBuffer.append(character)
             }
-        } else if isCurrentlyInsideControlCharacter {
+        case .beginSpecialCharacter:
             if let controlCharacter = controlCharacters[character] {
                 if controlCharacter == "u" {
-                    isCurrentlyInsideUnicodeHexCode = true
+                    action = .beginUTF32HexCharacter
                 } else {
                     buffer.append(controlCharacter)
+                    action = .read
                 }
-                isCurrentlyInsideControlCharacter = false
             } else {
                 throw DeserializationError.malformedControlCharacter
             }
-        } else {
+        case .read:
             if character == "\"" {
-                complete = true
+                action = .endString
                 break
             } else if character == "\\" {
-                isCurrentlyInsideControlCharacter = true
+                action = .beginSpecialCharacter
             } else {
                 buffer.append(character)
             }
+        case .endString:
+            throw DeserializationError.parserError
         }
     }
     
-    if complete {
+    switch(action) {
+    case .endString:
         let string = String(buffer)
         let leftOvers = characters.dropFirst(location)
         
         return (string, leftOvers)
-    } else {
+    default:
         throw DeserializationError.missingStringTerminator
     }
 }
