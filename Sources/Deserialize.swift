@@ -77,11 +77,11 @@ enum Item {
     
     func isSameAs(_ item: Item) -> Bool {
         switch(self, item) {
-        case (.array(_), .array(_)):
+        case (.array, .array):
             return true
         case (.atom, .atom):
             return true
-        case (.object(_), .object(_)):
+        case (.object, .object):
             return true
         case (.number, .number):
             return true
@@ -150,8 +150,7 @@ func deserialize(_ string: String) throws -> Value {
     
     switch(node.item) {
     case .array:
-        let (arrayValue, leftOvers) = try deserializeArray(into: node, characters: characters)
-        let value: Value = .array(arrayValue)
+        let (value, leftOvers) = try deserializeNested(into: node, characters: characters)
         return try deserializationComplete(value: value, remaining: leftOvers)
     case .atom:
         let (atom, leftOvers) = try deserializeAtom(initial: firstCharacter, characters: characters)
@@ -167,27 +166,26 @@ func deserialize(_ string: String) throws -> Value {
         }
         
         return try deserializationComplete(value: value, remaining: leftOvers)
+    case .number:
+        throw DeserializationError.notImplemented
+    case .object:
+        let (value, leftOvers) = try deserializeNested(into: node, characters: characters)
+        return try deserializationComplete(value: value, remaining: leftOvers)
     case .string:
         let (string, leftOvers) = try deserializeString(characters: characters)
-        
-        if leftOvers.count == 0 {
-            return .string(string)
-        } else {
-            throw DeserializationError.malformed
-        }
-    default:
-        throw DeserializationError.notImplemented
+        let value: Value = .string(string)
+        return try deserializationComplete(value: value, remaining: leftOvers)
     }
 }
 
 let numbers: Buffer = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
 
-let rawAtoms: [String: Value] = [
-    "true": .bool(true),
-    "false": .bool(false),
-    "null": .optional(.int(nil))
+let atoms: [String: Atom] = [
+    "true": .true,
+    "false": .false,
+    "null": .null
 ]
-let rawAtomFirstCharacters: Buffer = ["t", "f", "n"]
+let atomFirstCharacters: Buffer = ["t", "f", "n"]
 
 let controlCharacters: [Character: Character] = [
     "\\": "\\",
@@ -240,7 +238,7 @@ func deserializeFirstCharacter(_ character: Character, into node: Node) throws -
 }
 
 func parseFirstCharacter(_ character: Character) -> FirstCharacterAction {
-    if rawAtomFirstCharacters.contains(character) {
+    if atomFirstCharacters.contains(character) {
         return .beginAtom
     }
     
@@ -263,10 +261,10 @@ func parseFirstCharacter(_ character: Character) -> FirstCharacterAction {
     return .unknownAtom
 }
 
-func deserializeArray(into node: Node, characters: String.CharacterView.SubSequence) throws -> (ArrayValue, String.CharacterView.SubSequence) {
+func deserializeNested(into node: Node, characters: String.CharacterView.SubSequence) throws -> (Value, String.CharacterView.SubSequence) {
     var complete = false
     
-    
+    // dun dun dun
     
     if complete {
     } else {
@@ -278,9 +276,27 @@ func deserializeAtom(initial: Character, characters: String.CharacterView.SubSeq
     var buffer: Buffer = [initial]
     var complete = false
     var location = -1
+    var foundAtom: Atom? = nil
+    
+    for character in characters {
+        location += 1
+        
+        if buffer.count > 5 {
+            throw DeserializationError.unknownAtom
+        } else {
+            buffer.append(character)
+            if let atom = atoms[String(buffer)] {
+                foundAtom = atom
+                complete = true
+                break
+            }
+        }
+    }
     
     if complete {
-        
+        let atom = foundAtom!
+        let leftOvers = characters.dropFirst(location)
+        return (atom, leftOvers)
     } else {
         throw DeserializationError.unknownAtom
     }
@@ -345,50 +361,3 @@ func deserializeString(characters: String.CharacterView.SubSequence) throws -> (
     }
 }
 
-//func parse(_ character: Character, for item: Item) -> Action {
-//    if case .specialCharacter(let utf32Hex) = item.type {
-//        if utf32Hex {
-//            if item.buffer.count == 8 {
-//                return .endUTF32HexCharacter
-//            } else {
-//                return .read
-//            }
-//        } else {
-//            if character == "u" {
-//                return .beginUTF32HexCharacter
-//            } else if controlCharacters.keys.contains(character) {
-//                return .endSpecialCharacter
-//            } else {
-//                return .malformedControlCharacter
-//            }
-//        }
-//    }
-//    
-//    if case .string = item.type {
-//        if character == "\\" {
-//            return .beginSpecialCharacter
-//        } else if character == "\"" {
-//            return .endString
-//        } else {
-//            return .read
-//        }
-//    }
-//    
-//    if case .number(_, let alreadyDecimal, let alreadyScientific) = item.type {
-//        if numbers.contains(character) {
-//            return .read
-//        } else if character == "e" && !alreadyScientific {
-//            return .beginNumberScientific
-//        } else if character == "." && !alreadyDecimal {
-//            return .beginNumberDecimal
-//        } else {
-//            return .unknownAtom
-//        }
-//    }
-//    
-//    if item.buffer.count > 5 {
-//        return .unknownAtom
-//    }
-//    
-//    return .unknownAtom
-//}
