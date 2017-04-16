@@ -1,7 +1,7 @@
 import Foundation
 import SerializableValues
 
-let controlCharacters: [Character: Character] = [
+private let controlCharacters: [Character: Character] = [
     "\\": "\\",
     "\"": "\"",
     "/": "/",
@@ -13,7 +13,7 @@ let controlCharacters: [Character: Character] = [
     "u": "u"
 ]
 
-enum StringAction {
+private enum StringAction {
     case read
     case beginSpecialCharacter
     case beginUTF32HexCharacter

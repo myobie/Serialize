@@ -11,6 +11,7 @@ enum DeserializationError: Error {
     case empty
     case malformed
     case malformedControlCharacter
+    case malformedNumber
     case missingObjectTerminator
     case missingArrayTerminator
     case missingStringTerminator
@@ -22,7 +23,7 @@ public func fromJSON(_ string: String) throws -> Value {
     return try deserialize(string)
 }
 
-func deserializationComplete(value: Value, remaining: String.CharacterView.SubSequence) throws -> Value {
+private func deserializationComplete(value: Value, remaining: String.CharacterView.SubSequence) throws -> Value {
     if remaining.count == 0 {
         return value
     } else {
@@ -59,8 +60,8 @@ func deserialize(_ string: String) throws -> Value {
     case .false:
         let (value, leftOvers) = try deserializeFalse(characters: characters)
         return try deserializationComplete(value: value, remaining: leftOvers)
-    case .number(let negative, let firstCharacter):
-        let (value, leftOvers) = try deserializeNumber(negative: negative, firstCharacter: firstCharacter, characters: characters)
+    case .number(let firstCharacter):
+        let (value, leftOvers) = try deserializeNumber(firstCharacter: firstCharacter, characters: characters)
         return try deserializationComplete(value: value, remaining: leftOvers)
     case .null:
         let (value, leftOvers) = try deserializeNull(characters: characters)
@@ -75,6 +76,8 @@ func deserialize(_ string: String) throws -> Value {
         return try deserializationComplete(value: value, remaining: leftOvers)
     case .unknownAtom:
         throw DeserializationError.unknownAtom
+    case .whitespace:
+        throw DeserializationError.parserError
     }
 }
 

@@ -1,7 +1,7 @@
 import Foundation
 import SerializableValues
 
-enum NestedAction {
+private enum NestedAction {
     case complete(Value)
     case finishedWithArrayItem
     case finishedWithObjectItem
@@ -12,7 +12,7 @@ enum NestedAction {
     case none
 }
 
-func finishedWithItem(in node: Node) throws -> NestedAction {
+private func finishedWithItem(in node: Node) throws -> NestedAction {
     switch (node.item) {
     case .array(_):
         return .finishedWithArrayItem
@@ -23,14 +23,14 @@ func finishedWithItem(in node: Node) throws -> NestedAction {
     }
 }
 
-func processCompleteItem(node: Node, value: Value) throws -> (Node, NestedAction) {
+private func processCompleteItem(node: Node, value: Value) throws -> (Node, NestedAction) {
     let newNode = try node.appending(value)
     let action = try finishedWithItem(in: newNode)
     
     return (newNode, action)
 }
 
-func processEnding(node: Node, value: Value) throws -> (Node, NestedAction) {
+private func processEnding(node: Node, value: Value) throws -> (Node, NestedAction) {
     if let parent = node.parent {
         return try processCompleteItem(node: parent, value: value)
     } else {
@@ -65,7 +65,7 @@ func deserializeNested(into node: Node, characters: String.CharacterView) throws
     
     outer: while true {
         if case .complete(_) = action {
-            break
+            break outer
         }
         
         if let character = characters.first {
@@ -174,10 +174,10 @@ func deserializeNested(into node: Node, characters: String.CharacterView) throws
                 default:
                     throw DeserializationError.malformed
                 }
-            case .number(let negative, let firstCharacter):
+            case .number(let firstCharacter):
                 switch (action) {
                 case .readyForArrayItem, .readyForObjectItemValue:
-                    let (value, newCharacters) = try deserializeNumber(negative: negative, firstCharacter: firstCharacter, characters: characters)
+                    let (value, newCharacters) = try deserializeNumber(firstCharacter: firstCharacter, characters: characters)
                     let (newNode, newAction) = try processCompleteItem(node: node, value: value)
                     
                     node = newNode
@@ -223,6 +223,8 @@ func deserializeNested(into node: Node, characters: String.CharacterView) throws
                 }
             case .unknownAtom:
                 throw DeserializationError.unknownAtom
+            case .whitespace:
+                continue outer
             }
         } else {
             break outer
