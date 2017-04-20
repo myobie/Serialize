@@ -24,6 +24,16 @@ public func fromJSON(_ string: String) throws -> Value {
 }
 
 private func deserializationComplete(value: Value, box: StringBox) throws -> Value {
+    var nextCharacter: Character
+    
+    repeat {
+        if let char = box.removeFirst() {
+            nextCharacter = char
+        } else {
+            nextCharacter = "A"
+        }
+    } while whitespaceCharacters.contains(nextCharacter)
+    
     if box.isEmpty {
         return value
     } else {
@@ -38,8 +48,17 @@ func deserialize(_ string: String) throws -> Value {
         throw DeserializationError.empty
     }
     
-    let box = StringBox(trimmedString)
-    let firstCharacter: Character = box.removeFirst()!
+    let box = StringBox(string)
+    var firstCharacter: Character
+    
+    repeat {
+        if let char = box.removeFirst() {
+            firstCharacter = char
+        } else {
+            throw DeserializationError.empty
+        }
+    } while whitespaceCharacters.contains(firstCharacter)
+    
     let initialAction = deserializeCharacter(firstCharacter)
     
     switch(initialAction) {

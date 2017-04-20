@@ -71,3 +71,4 @@ class StringBox {
         self.view = view.dropFirst(num)
     }
 }
+
