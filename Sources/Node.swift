@@ -18,15 +18,6 @@ indirect enum Node {
         return try self.item.value()
     }
     
-    private func replace(_ item: Item) -> Node {
-        switch (self) {
-        case .root(_):
-            return .root(item: item)
-        case .child(_, let parent, let depth):
-            return .child(item: item, parent: parent, depth: depth)
-        }
-    }
-    
     func push(_ item: Item) -> Node {
         switch(self) {
         case .root(_):
@@ -34,6 +25,14 @@ indirect enum Node {
         case .child(_, _, let depth):
             return .child(item: item, parent: self, depth: depth + 1)
         }
+    }
+    
+    func pushArray() -> Node {
+        return push(Item.newArray())
+    }
+    
+    func pushObject() -> Node {
+        return push(Item.newObject())
     }
     
     var parent: Node? {
@@ -45,13 +44,11 @@ indirect enum Node {
         }
     }
     
-    func appending(_ value: Value) throws -> Node {
-        let newItem = try item.appending(value)
-        return replace(newItem)
+    func append(_ value: Value) throws {
+        try item.append(value)
     }
     
-    func addKey(_ key: String) throws -> Node {
-        let newItem = try item.addKey(key)
-        return replace(newItem)
+    func setKey(_ key: String) throws {
+        try item.setKey(key)
     }
 }

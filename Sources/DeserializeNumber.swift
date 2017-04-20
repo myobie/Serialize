@@ -9,7 +9,7 @@ private enum NumberAction {
 
 private let numbers: Buffer = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
 
-private let endings: Buffer = [",", "]", "}"]
+private let endings: Buffer = [",", "]", "}"] + whitespaceCharacters
 
 private func parseInt(_ buffer: Buffer) throws -> Int {
     if let int = Int(String(buffer)) {
@@ -134,30 +134,16 @@ func deserializeNumber(firstCharacter: Character, characters: String.CharacterVi
         
         return (.int(int), leftOvers)
     } else {
-        if decimalBuffer.count > 6 {
-            var double = try parseDouble(intBuffer, decimalBuffer)
-            
-            if let exp = exp {
-                double = double * Double(exp)
-            }
-            
-            if negative {
-                double *= Double(-1)
-            }
-            
-            return (.double(double), leftOvers)
-        } else {
-            var float = try parseFloat(intBuffer, decimalBuffer)
-            
-            if let exp = exp {
-                float = float * Float(exp)
-            }
-            
-            if negative {
-                float *= Float(-1)
-            }
-            
-            return (.float(float), leftOvers)
+        var double = try parseDouble(intBuffer, decimalBuffer)
+        
+        if let exp = exp {
+            double = double * Double(exp)
         }
+        
+        if negative {
+            double *= Double(-1)
+        }
+        
+        return (.double(double), leftOvers)
     }
 }

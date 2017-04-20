@@ -44,11 +44,11 @@ func deserialize(_ string: String) throws -> Value {
     
     switch(initialAction) {
     case .beginArray:
-        let node = Node.root(item: .array(ArrayValue()))
+        let node = Node.root(item: Item.newArray())
         let (value, leftOvers) = try deserializeNested(into: node, characters: characters)
         return try deserializationComplete(value: value, remaining: leftOvers)
     case .beginObject:
-        let node = Node.root(item: .object(DictionaryValue()))
+        let node = Node.root(item: Item.newObject())
         let (value, leftOvers) = try deserializeNested(into: node, characters: characters)
         return try deserializationComplete(value: value, remaining: leftOvers)
     case .comma:

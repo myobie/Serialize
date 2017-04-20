@@ -16,7 +16,7 @@ enum CharacterAction {
     case whitespace
 }
 
-private let whitespaceCharacters: Buffer = [
+internal let whitespaceCharacters: Buffer = [
     " ",
     "\t",
     "\n",

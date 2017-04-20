@@ -36,16 +36,16 @@ class SerializeTests: XCTestCase {
     }
     
     func testSimpleObject() {
-        let simple = Value([
-                "hello": .string("world"),
-                "one": .int(1)
-            ])
+        let simple: Value  = [
+            "hello": "world",
+            "one": 1
+        ]
         
         XCTAssertEqual("{\"hello\":\"world\",\"one\":1}", serialize(simple))
     }
     
     func testOptionalStuff() {
-        let arr = Value([.optional(.string(nil))])
+        let arr: Value = [.optional(.string(nil))]
         
         XCTAssertEqual("[null]", serialize(arr))
     }
