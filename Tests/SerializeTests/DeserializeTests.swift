@@ -249,7 +249,7 @@ class DeserializeTests: XCTestCase {
         var results: [Value] = []
         
         measure() {
-            for _ in 1...10000 {
+            for _ in 1...3000 {
                 results.append(try! deserialize(self.performanceJSON))
             }
         }
@@ -261,7 +261,7 @@ class DeserializeTests: XCTestCase {
         var results: [Value] = []
         
         measure() {
-            for _ in 1...10000 {
+            for _ in 1...3000 {
                 let any = try! JSONSerialization.jsonObject(with: self.performanceData, options: [])
                 if let value = Value(any) {
                     results.append(value)

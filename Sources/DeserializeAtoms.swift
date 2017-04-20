@@ -1,34 +1,34 @@
 import Foundation
 import SerializableValues
 
-func deserializeFalse(characters: String.CharacterView) throws -> (Value, String.CharacterView) {
-    let four = String(characters.prefix(4))
+func deserializeFalse(box: StringBox) throws -> Value {
+    let four = box.prefix(4)
 
     if four == "alse" {
-        let leftOvers = characters.dropFirst(4)
-        return (.bool(false), leftOvers)
+        box.removeFirst(4)
+        return .bool(false)
     } else {
         throw DeserializationError.unknownAtom
     }
 }
 
-func deserializeNull(characters: String.CharacterView) throws -> (Value, String.CharacterView) {
-    let three = String(characters.prefix(3))
+func deserializeNull(box: StringBox) throws -> Value {
+    let three = box.prefix(3)
     
     if three == "ull" {
-        let leftOvers = characters.dropFirst(3)
-        return (.optional(.int(nil)), leftOvers)
+        box.removeFirst(3)
+        return .optional(.int(nil))
     } else {
         throw DeserializationError.unknownAtom
     }
 }
 
-func deserializeTrue(characters: String.CharacterView) throws -> (Value, String.CharacterView) {
-    let three = String(characters.prefix(3))
+func deserializeTrue(box: StringBox) throws -> Value {
+    let three = box.prefix(3)
     
     if three == "rue" {
-        let leftOvers = characters.dropFirst(3)
-        return (.bool(true), leftOvers)
+        box.removeFirst(3)
+        return .bool(true)
     } else {
         throw DeserializationError.unknownAtom
     }

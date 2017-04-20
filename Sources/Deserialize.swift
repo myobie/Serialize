@@ -23,8 +23,8 @@ public func fromJSON(_ string: String) throws -> Value {
     return try deserialize(string)
 }
 
-private func deserializationComplete(value: Value, remaining: String.CharacterView.SubSequence) throws -> Value {
-    if remaining.count == 0 {
+private func deserializationComplete(value: Value, box: StringBox) throws -> Value {
+    if box.isEmpty {
         return value
     } else {
         throw DeserializationError.malformed
@@ -38,19 +38,19 @@ func deserialize(_ string: String) throws -> Value {
         throw DeserializationError.empty
     }
     
-    let firstCharacter = trimmedString.characters.first!
-    let characters = trimmedString.characters.dropFirst()
+    let box = StringBox(trimmedString)
+    let firstCharacter: Character = box.removeFirst()!
     let initialAction = deserializeCharacter(firstCharacter)
     
     switch(initialAction) {
     case .beginArray:
         let node = Node.root(item: Item.newArray())
-        let (value, leftOvers) = try deserializeNested(into: node, characters: characters)
-        return try deserializationComplete(value: value, remaining: leftOvers)
+        let value = try deserializeNested(into: node, box: box)
+        return try deserializationComplete(value: value, box: box)
     case .beginObject:
         let node = Node.root(item: Item.newObject())
-        let (value, leftOvers) = try deserializeNested(into: node, characters: characters)
-        return try deserializationComplete(value: value, remaining: leftOvers)
+        let value = try deserializeNested(into: node, box: box)
+        return try deserializationComplete(value: value, box: box)
     case .comma:
         throw DeserializationError.malformed
     case .endArray:
@@ -58,22 +58,22 @@ func deserialize(_ string: String) throws -> Value {
     case .endObject:
         throw DeserializationError.malformed
     case .false:
-        let (value, leftOvers) = try deserializeFalse(characters: characters)
-        return try deserializationComplete(value: value, remaining: leftOvers)
+        let value = try deserializeFalse(box: box)
+        return try deserializationComplete(value: value, box: box)
     case .number(let firstCharacter):
-        let (value, leftOvers) = try deserializeNumber(firstCharacter: firstCharacter, characters: characters)
-        return try deserializationComplete(value: value, remaining: leftOvers)
+        let value = try deserializeNumber(firstCharacter: firstCharacter, box: box)
+        return try deserializationComplete(value: value, box: box)
     case .null:
-        let (value, leftOvers) = try deserializeNull(characters: characters)
-        return try deserializationComplete(value: value, remaining: leftOvers)
+        let value = try deserializeNull(box: box)
+        return try deserializationComplete(value: value, box: box)
     case .colon:
         throw DeserializationError.malformed
     case .string:
-        let (value, leftOvers) = try deserializeString(characters: characters)
-        return try deserializationComplete(value: value, remaining: leftOvers)
+        let value = try deserializeString(box: box)
+        return try deserializationComplete(value: value, box: box)
     case .true:
-        let (value, leftOvers) = try deserializeTrue(characters: characters)
-        return try deserializationComplete(value: value, remaining: leftOvers)
+        let value = try deserializeTrue(box: box)
+        return try deserializationComplete(value: value, box: box)
     case .unknownAtom:
         throw DeserializationError.unknownAtom
     case .whitespace:

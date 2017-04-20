@@ -41,8 +41,8 @@ private func processEnding(node: Node, value: Value) throws -> (Node, NestedActi
     }
 }
 
-func deserializeNested(into node: Node, characters: String.CharacterView) throws -> (Value, String.CharacterView) {
-    if characters.count == 0 {
+func deserializeNested(into node: Node, box: StringBox) throws -> Value {
+    if box.isEmpty {
         switch(node.item) {
         case .array(_):
             throw DeserializationError.missingArrayTerminator
@@ -55,9 +55,9 @@ func deserializeNested(into node: Node, characters: String.CharacterView) throws
         }
     }
     
-    var action: NestedAction
     var node = node
-    var characters = characters
+    
+    var action: NestedAction
     
     switch (node.item) {
     case .array(_):
@@ -75,8 +75,7 @@ func deserializeNested(into node: Node, characters: String.CharacterView) throws
             break outer
         }
         
-        if let character = characters.first {
-            characters = characters.dropFirst()
+        if let character = box.removeFirst() {
             let characterAction = deserializeCharacter(character)
             
             switch (characterAction) {
@@ -164,51 +163,38 @@ func deserializeNested(into node: Node, characters: String.CharacterView) throws
             case .false:
                 switch (action) {
                 case .readyForArrayItem, .readyForObjectItemValue:
-                    let (value, newCharacters) = try deserializeFalse(characters: characters)
-                    let newAction = try processCompleteItem(node: node, value: value)
-                    
-                    action = newAction
-                    characters = newCharacters
+                    let value = try deserializeFalse(box: box)
+                    action = try processCompleteItem(node: node, value: value)
                 default:
                     throw DeserializationError.malformed
                 }
             case .null:
                 switch (action) {
                 case .readyForArrayItem, .readyForObjectItemValue:
-                    let (value, newCharacters) = try deserializeNull(characters: characters)
-                    let newAction = try processCompleteItem(node: node, value: value)
-                    
-                    action = newAction
-                    characters = newCharacters
+                    let value = try deserializeNull(box: box)
+                    action = try processCompleteItem(node: node, value: value)
                 default:
                     throw DeserializationError.malformed
                 }
             case .number(let firstCharacter):
                 switch (action) {
                 case .readyForArrayItem, .readyForObjectItemValue:
-                    let (value, newCharacters) = try deserializeNumber(firstCharacter: firstCharacter, characters: characters)
-                    let newAction = try processCompleteItem(node: node, value: value)
-                    
-                    action = newAction
-                    characters = newCharacters
+                    let value = try deserializeNumber(firstCharacter: firstCharacter, box: box)
+                    action = try processCompleteItem(node: node, value: value)
                 default:
                     throw DeserializationError.malformed
                 }
             case .string:
                 switch (action) {
                 case .readyForArrayItem, .readyForObjectItemValue:
-                    let (value, newCharacters) = try deserializeString(characters: characters)
-                    let newAction = try processCompleteItem(node: node, value: value)
-                    
-                    action = newAction
-                    characters = newCharacters
+                    let value = try deserializeString(box: box)
+                    action = try processCompleteItem(node: node, value: value)
                 case .readyForObjectItem:
-                    let (value, newCharacters) = try deserializeString(characters: characters)
+                    let value = try deserializeString(box: box)
                     
                     if let string = value.stringValue {
                         try node.setKey(string)
                         action = .finishedWithObjectItemKey
-                        characters = newCharacters
                     } else {
                         throw DeserializationError.parserError
                     }
@@ -219,11 +205,8 @@ func deserializeNested(into node: Node, characters: String.CharacterView) throws
             case .true:
                 switch (action) {
                 case .readyForArrayItem, .readyForObjectItemValue:
-                    let (value, newCharacters) = try deserializeTrue(characters: characters)
-                    let newAction = try processCompleteItem(node: node, value: value)
-                    
-                    action = newAction
-                    characters = newCharacters
+                    let value = try deserializeTrue(box: box)
+                    action = try processCompleteItem(node: node, value: value)
                 default:
                     throw DeserializationError.malformed
                 }
@@ -239,7 +222,7 @@ func deserializeNested(into node: Node, characters: String.CharacterView) throws
     
     switch(action) {
     case .complete(let value):
-        return (value, characters)
+        return value
     default:
         switch(node.item) {
         case .array(_):

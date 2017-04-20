@@ -19,14 +19,6 @@ private func parseInt(_ buffer: Buffer) throws -> Int {
     }
 }
 
-private func parseFloat(_ intBuffer: Buffer, _ decimalBuffer: Buffer) throws -> Float {
-    if let float = Float("\(String(intBuffer)).\(String(decimalBuffer))") {
-        return float
-    } else {
-        throw DeserializationError.parserError
-    }
-}
-
 private func parseDouble(_ intBuffer: Buffer, _ decimalBuffer: Buffer) throws -> Double {
     if let double = Double("\(String(intBuffer)).\(String(decimalBuffer))") {
         return double
@@ -35,7 +27,7 @@ private func parseDouble(_ intBuffer: Buffer, _ decimalBuffer: Buffer) throws ->
     }
 }
 
-func deserializeNumber(firstCharacter: Character, characters: String.CharacterView) throws -> (Value, String.CharacterView) {
+func deserializeNumber(firstCharacter: Character, box: StringBox) throws -> Value {
     let negative: Bool
     var intBuffer: Buffer = []
     var decimalBuffer: Buffer = []
@@ -46,12 +38,12 @@ func deserializeNumber(firstCharacter: Character, characters: String.CharacterVi
     
     negative = firstCharacter == "-"
     
-    if characters.isEmpty {
+    if box.isEmpty {
         if negative {
             throw DeserializationError.malformedNumber
         } else {
             if let int = Int(String(firstCharacter)) {
-                return (.int(int), characters)
+                return .int(int)
             } else {
                 throw DeserializationError.parserError
             }
@@ -62,7 +54,7 @@ func deserializeNumber(firstCharacter: Character, characters: String.CharacterVi
         intBuffer.append(firstCharacter)
     }
     
-    outer: for character in characters {
+    outer: for character in box.characters {
         location += 1
         
         if numbers.contains(character) {
@@ -107,7 +99,7 @@ func deserializeNumber(firstCharacter: Character, characters: String.CharacterVi
         }
     }
     
-    let leftOvers = characters.dropFirst(location)
+    box.removeFirst(location)
     
     let exp: Int? = nil
     
@@ -132,7 +124,7 @@ func deserializeNumber(firstCharacter: Character, characters: String.CharacterVi
             int *= -1
         }
         
-        return (.int(int), leftOvers)
+        return .int(int)
     } else {
         var double = try parseDouble(intBuffer, decimalBuffer)
         
@@ -144,6 +136,6 @@ func deserializeNumber(firstCharacter: Character, characters: String.CharacterVi
             double *= Double(-1)
         }
         
-        return (.double(double), leftOvers)
+        return .double(double)
     }
 }

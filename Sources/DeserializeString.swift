@@ -20,13 +20,13 @@ private enum StringAction {
     case endString
 }
 
-func deserializeString(characters: String.CharacterView) throws -> (Value, String.CharacterView) {
+func deserializeString(box: StringBox) throws -> Value {
     var buffer: Buffer = []
     var location = 0
     var action: StringAction = .read
     var unicodeHexBuffer: Buffer = []
     
-    outer: for character in characters {
+    outer: for character in box.characters {
         location += 1
         
         switch(action) {
@@ -72,9 +72,9 @@ func deserializeString(characters: String.CharacterView) throws -> (Value, Strin
     switch(action) {
     case .endString:
         let string = String(buffer)
-        let leftOvers = characters.dropFirst(location)
+        box.removeFirst(location)
         
-        return (.string(string), leftOvers)
+        return .string(string)
     default:
         throw DeserializationError.missingStringTerminator
     }
